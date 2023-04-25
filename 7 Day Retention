@@ -1,0 +1,48 @@
+-- Using Big Query
+-- Create a table using "WITH" and limit the columns you're pulling
+-- Change "DATE" truncation and "date_part" values based on type of retention
+
+WITH
+
+users_raw AS
+(
+SELECT
+  <field_1>,
+  DATE(<date_field_1>) AS date
+FROM <table_1>
+-- add conditional "WHERE" statements as nescessary
+),
+
+min_date AS 
+(
+SELECT
+  <field_1>,
+  MIN(DATE(<date_field_1>)) AS initial_date
+FROM <table_1>
+-- add conditional "WHERE" statements as nescessary
+GROUP BY 1
+)
+
+SELECT
+  initial_date,
+  COUNT(DISTINCT <field_1>) AS cohort,
+  COUNT(DISTINCT CASE WHEN day_number = 1 THEN <field_1> ELSE NULL END) AS day_1,
+  COUNT(DISTINCT CASE WHEN day_number = 2 THEN <field_1> ELSE NULL END) AS day_2,
+  COUNT(DISTINCT CASE WHEN day_number = 3 THEN <field_1> ELSE NULL END) AS day_3,
+  COUNT(DISTINCT CASE WHEN day_number = 4 THEN <field_1> ELSE NULL END) AS day_4,
+  COUNT(DISTINCT CASE WHEN day_number = 5 THEN <field_1> ELSE NULL END) AS day_5,
+  COUNT(DISTINCT CASE WHEN day_number = 6 THEN <field_1> ELSE NULL END) AS day_6,
+  COUNT(DISTINCT CASE WHEN day_number = 7 THEN <field_1> ELSE NULL END) AS day_7
+FROM
+  (
+    SELECT
+      a.<field_1>,
+      a.date,
+      b.initial_date,
+      DATE_DIFF(a.date, b.initial_date, DAY) AS day_number
+    FROM users_raw AS a
+    LEFT JOIN min_date AS b
+    ON a.<field_1> = b.<field_1> AND a.date >= b.initial_date
+  )
+GROUP BY 1
+ORDER BY 1
